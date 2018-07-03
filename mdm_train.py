@@ -60,20 +60,20 @@ def train():
         for i, prediction in enumerate(predictions):
             norm_error = losses.normalized_rmse(prediction, gt_shapes)
             mse_error = tf.reduce_mean((prediction - initial_shapes)**2, 0)
-            tf.histogram_summary('errors/step_{}'.format(i), mse_error)
+            tf.summary.histogram('errors/step_{}'.format(i), mse_error)
 
             norm_error = slim.losses.compute_weighted_loss(norm_error)
 
-            tf.scalar_summary('losses/step_{}'.format(i), tf.reduce_mean(norm_error))
+            tf.summary.scalar('losses/step_{}'.format(i), tf.reduce_mean(norm_error))
 
         total_loss = slim.losses.get_total_loss()
-        tf.scalar_summary('losses/total loss', total_loss)
+        tf.summary.scalar('losses/total loss', total_loss)
 
         gt_images = draw_landmarks(images, gt_shapes)
-        tf.image_summary('gt_images', gt_images)
+        tf.summary.image('gt_images', gt_images)
         init_images = draw_landmarks(images, initial_shapes)
         pred_images = [init_images] + [draw_landmarks(images, x) for x in predictions]
-        tf.image_summary('predictions', tf.concat(axis=2, values=pred_images))
+        tf.summary.image('predictions', tf.concat(axis=2, values=pred_images))
        
         # Calculate the learning rate schedule.
         decay_steps = 15000
