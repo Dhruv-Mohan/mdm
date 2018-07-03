@@ -14,7 +14,7 @@ import numpy as np
 import tensorflow as tf
 # import detect
 import utils
-
+_build_ref_ = True
 slim = tf.contrib.slim
 
 FLAGS = tf.app.flags.FLAGS
@@ -225,7 +225,11 @@ def read_images(paths,
       lms: a tf tensor of shape [batch_size, 68, 2].
       lms_init: a tf tensor of shape [batch_size, 68, 2].
     """
-
+    global  _build_ref_
+    if _build_ref_:
+        reference_shape = PointCloud(build_reference_shape(paths))
+        mio.export_pickle(reference_shape.points, 'reference_shape.pkl', overwrite=True)
+        _build_ref_ = False
     reference_shape = tf.constant(mio.import_pickle('reference_shape.pkl', encoding='latin1'))
     files = tf.concat(axis=0, values=[list(map(str, sorted(Path(d).parent.glob(Path(d).name))))
                           for d in paths])
@@ -280,6 +284,11 @@ def batch_inputs(paths,
       lms: a tf tensor of shape [batch_size, 68, 2].
       lms_init: a tf tensor of shape [batch_size, 68, 2].
     """
+    global  _build_ref_
+    if _build_ref_:
+        reference_shape = PointCloud(build_reference_shape(paths))
+        mio.export_pickle(reference_shape.points, 'reference_shape.pkl', overwrite=True)
+        _build_ref_ = False
 
     reference_shape = tf.constant(mio.import_pickle('reference_shape.pkl', encoding='latin1') * .8)
 
