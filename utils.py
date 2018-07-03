@@ -1,5 +1,6 @@
 import numpy as np
 from menpo.shape import PointCloud
+import cv2
 
 jaw_indices = np.arange(0, 17)
 lbrow_indices = np.arange(17, 22)
@@ -75,7 +76,9 @@ def line(image, x0, y0, x1, y1, color):
 def draw_landmarks(img, lms):
     try:
         img = img.copy()
-
+        for pt in lms:
+            cv2.circle(img, (int(pt[0], int(pt[1]))), 3, (1,0,0))
+        '''
         for i, part in enumerate(parts_68[1:]):
             circular = []
 
@@ -86,6 +89,7 @@ def draw_landmarks(img, lms):
                 p1, p2 = lms[p1], lms[p2]
 
                 line(img, p2[1], p2[0], p1[1], p1[0], 1)
+        '''
     except:
         pass
     return img
