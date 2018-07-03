@@ -270,7 +270,7 @@ def read_images(paths,
 def batch_inputs(paths,
                  batch_size=32,
                  is_training=False,
-                 num_channels=3):
+                 num_channels=3, num_landmarks=68):
     """Reads the files off the disk and produces batches.
 
     Args:
@@ -292,64 +292,33 @@ def batch_inputs(paths,
 
     reference_shape = tf.constant(mio.import_pickle('reference_shape.pkl', encoding='latin1') * .8)
 
-    files = tf.concat(axis=0, values=[list(map(str, sorted(Path(d).parent.glob(Path(d).name))))
-                          for d in paths])
+    files = tf.concat(axis=0, values=[tf.matching_files(d) for d in paths])
 
     filename_queue = tf.train.string_input_producer(files,
                                                     shuffle=is_training,
                                                     capacity=1000)
 
-    reader = tf.TFRecordReader()
-
-    _, serialized_example = reader.read(filename_queue)
-
-    if is_training:
-        serialized_example = tf.train.shuffle_batch(
-            [serialized_example], 1, 2000, 200, 4)
-        serialized_example = serialized_example[0]
-    
-    features = tf.parse_single_example(
-        serialized_example,
-        features={
-            'height': tf.FixedLenFeature([], tf.int64),
-            'width': tf.FixedLenFeature([], tf.int64),
-            'num_landmarks': tf.FixedLenFeature([], tf.int64),
-            'landmarks': tf.FixedLenFeature([], tf.string),
-            'image': tf.FixedLenFeature([], tf.string),
-            'name': tf.FixedLenFeature([], tf.string),
-        }
+    image, lms, lms_init = tf.py_func(
+        partial(load_image, is_training=is_training),
+        [filename_queue.dequeue(), reference_shape], # input arguments
+        [tf.float32, tf.float32, tf.float32], # output types
+        name='load_image'
     )
-    num_landmarks = features['num_landmarks']
-    num_landmarks = 68
-    image = tf.image.decode_jpeg(features['image'], channels=num_channels)
 
-    gt_shape = tf.to_float(tf.decode_raw(features['landmarks'], tf.float64))
-    gt_shape = tf.reshape(gt_shape, [num_landmarks, 2])
+    # The image has always 3 channels.
+    image.set_shape([None, None, 3])
 
-    height = features['height']
-    width = features['width']
-    bounding_box = get_bounding_box(gt_shape)
-
-    # Set the number of channels.
-    image.set_shape([None, None, num_channels])
-    
-    image = tf.to_float(image)
-    image /= 255.
-    
     if is_training:
         image = distort_color(image)
-        bounding_box = bounding_box * tf.random_normal((1,), 1, .01) + tf.random_normal((2,), 1, 5)
-    
-    image, init_shape, ratio = align_reference_shape_w_image(reference_shape, bounding_box, image)
-    init_shape = tf.reshape(init_shape, [num_landmarks, 2])
-    gt_shape /= ratio
 
-    images, lms, inits = tf.train.batch(
-                                    [image, gt_shape, init_shape],
-                                    batch_size=batch_size,
-                                    num_threads=2 if is_training else 1,
-                                    capacity=1000,
-                                    enqueue_many=False,
-                                    dynamic_pad=True)
+    lms = tf.reshape(lms, [num_landmarks, 2])
+    lms_init = tf.reshape(lms_init, [num_landmarks, 2])
+
+    images, lms, inits = tf.train.batch([image, lms, lms_init],
+                                        batch_size=batch_size,
+                                        num_threads=4,
+                                        capacity=1000,
+                                        enqueue_many=False,
+                                        dynamic_pad=True)
 
     return images, lms, inits
