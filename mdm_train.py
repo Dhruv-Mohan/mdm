@@ -73,7 +73,7 @@ def train():
         tf.image_summary('gt_images', gt_images)
         init_images = draw_landmarks(images, initial_shapes)
         pred_images = [init_images] + [draw_landmarks(images, x) for x in predictions]
-        tf.image_summary('predictions', tf.concat(2, pred_images))
+        tf.image_summary('predictions', tf.concat(axis=2, values=pred_images))
        
         # Calculate the learning rate schedule.
         decay_steps = 15000

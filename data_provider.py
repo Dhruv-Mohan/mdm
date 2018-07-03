@@ -227,7 +227,7 @@ def read_images(paths,
     """
 
     reference_shape = tf.constant(mio.import_pickle('reference_shape.pkl', encoding='latin1'))
-    files = tf.concat(0, [list(map(str, sorted(Path(d).parent.glob(Path(d).name))))
+    files = tf.concat(axis=0, values=[list(map(str, sorted(Path(d).parent.glob(Path(d).name))))
                           for d in paths])
 
     filename_queue = tf.train.string_input_producer(files,
@@ -283,7 +283,7 @@ def batch_inputs(paths,
 
     reference_shape = tf.constant(mio.import_pickle('reference_shape.pkl', encoding='latin1') * .8)
 
-    files = tf.concat(0, [list(map(str, sorted(Path(d).parent.glob(Path(d).name))))
+    files = tf.concat(axis=0, values=[list(map(str, sorted(Path(d).parent.glob(Path(d).name))))
                           for d in paths])
 
     filename_queue = tf.train.string_input_producer(files,

@@ -26,7 +26,7 @@ def convolutional_model_mini(inputs):
         crop_size = pool_2.get_shape().as_list()[1:3]
         conv_2_cropped = utils.get_central_crop(conv_2, box=crop_size)
 
-        net = tf.concat(3, [pool_2, conv_2_cropped])
+        net = tf.concat(axis=3, values=[pool_2, conv_2_cropped])
 
   return net
 
@@ -50,7 +50,7 @@ def convolutional_model_mini_2(inputs):
         crop_size = pool_2.get_shape().as_list()[1:3]
         conv_1_cropped = utils.get_central_crop(conv_1, box=crop_size)
 
-        net = tf.concat(3, [pool_2, conv_1_cropped])
+        net = tf.concat(axis=3, values=[pool_2, conv_1_cropped])
         net = slim.conv2d(net, scope='conv_3')
   return net
 
@@ -149,7 +149,7 @@ def model(images, initial_shapes, num_iterations=3, num_patches=68, patch_shape=
 
       with tf.variable_scope('rnn', reuse=step>0) as scope:
           with slim.arg_scope([slim.fully_connected], weights_regularizer=slim.l2_regularizer(5e-5)):
-              hidden_state = slim.fully_connected(tf.concat(1, [features, hidden_state]), hidden_size, activation_fn=tf.tanh)
+              hidden_state = slim.fully_connected(tf.concat(axis=1, values=[features, hidden_state]), hidden_size, activation_fn=tf.tanh)
           prediction = slim.linear(hidden_state, num_patches * 2, scope='pred')
 
       prediction = tf.reshape(prediction, (batch_size, num_patches, 2))
