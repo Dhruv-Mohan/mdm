@@ -5,7 +5,7 @@ import numpy as np
 from functools import partial
 slim = tf.contrib.slim
 
-_extract_patches_module = tf.load_op_library('/homes/gt108/Projects/tf_extract_patches/extract_patches.so')
+#_extract_patches_module = tf.load_op_library('/homes/gt108/Projects/tf_extract_patches/extract_patches.so')
 
 def convolutional_model_mini(inputs):   
   conv_settings = dict(
