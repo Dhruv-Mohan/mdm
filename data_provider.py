@@ -47,7 +47,7 @@ def get_bounding_box(shape):
     min_x, min_y = min_xy[0], min_xy[1]
     max_x, max_y = max_xy[0], max_xy[1]
 
-    return tf.pack([[min_x, min_y], [max_x, min_y],
+    return tf.stack([[min_x, min_y], [max_x, min_y],
                     [max_x, max_y], [min_x, max_y]])
 
 def align_reference_shape_w_image(reference_shape, bounding_box, im):

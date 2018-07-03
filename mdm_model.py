@@ -116,11 +116,11 @@ def extract_patches_image(image, centres, sampling_grid=default_sampling_grid):
     Y = tf.clip_by_value(patch_grid[:, :, :, 0], 0, max_y - 1)
     X = tf.clip_by_value(patch_grid[:, :, :, 1], 0, max_x - 1)
 
-    return tf.gather_nd(image, tf.transpose(tf.pack([Y, X]), (2, 3, 1, 0)))
+    return tf.gather_nd(image, tf.transpose(tf.stack([Y, X]), (2, 3, 1, 0)))
 
 def extract_patches(images, centres, sampling_grid=default_sampling_grid):
     batch_size = images.get_shape().as_list()[0]
-    patches = tf.pack([extract_patches_image(images[i], centres[i], sampling_grid=sampling_grid)
+    patches = tf.stack([extract_patches_image(images[i], centres[i], sampling_grid=sampling_grid)
                        for i in range(batch_size)])
     return tf.transpose(patches, [0, 3, 1, 2, 4])
 
