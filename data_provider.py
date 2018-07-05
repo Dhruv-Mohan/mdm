@@ -440,15 +440,26 @@ def super_batch_inputs(paths,
       lms: a tf tensor of shape [batch_size, 68, 2].
       lms_init: a tf tensor of shape [batch_size, 68, 2].
     """
-    Train_images = os.listdir(_TRAIN_IMAGES_)
-    Train_images_full = []
-    for image in Train_images:
-        Train_images_full.append(_TRAIN_IMAGES_ + image)
-    dataset = tf.data.Dataset.from_tensor_slices((Train_images_full))
-    dataset = dataset.shuffle(buffer_size=25000).repeat()
+    if is_training:
+        data_path = _TRAIN_IMAGES_
+    else:
+        data_path = _VAL_IMAGES_
+
+    images = os.listdir(data_path)
+    images_full = []
+    for image in images:
+        images_full.append(os.path.join(data_path, image))
+
+    dataset = tf.data.Dataset.from_tensor_slices((images_full))
+
+    if is_training:
+        dataset = dataset.shuffle(buffer_size=25000).repeat()
     dataset = dataset.map(decode_img_lmpts)
     dataset = dataset.batch(batch_size)
-    train_iterator = dataset.make_one_shot_iterator()
-    images, lms, inits = train_iterator.get_next()
+
+
+
+    iterator = dataset.make_one_shot_iterator()
+    images, lms, inits = iterator.get_next()
 
     return images, lms, inits

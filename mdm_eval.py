@@ -20,6 +20,8 @@ import time
 import utils
 import losses
 #import menpo.io as mio
+import cv2
+import pickle
 
 # Do not use a gui toolkit for matlotlib.
 matplotlib.use('Agg')
@@ -67,7 +69,11 @@ def plot_ced(errors, method_names=['MDM']):
     return data
 '''
 
-def _eval_once(saver, summary_writer, rmse_op, summary_op):
+_OUTPUT_PATH_ = '/home/dhruv/Projects/PersonalGit/mdm/output/'
+_TEST_ = True
+_BATCH_SIZE = 1
+
+def _eval_once(saver, tfimage, gt, preds):
   """Runs Eval once.
   Args:
     saver: Saver.
@@ -104,6 +110,31 @@ def _eval_once(saver, summary_writer, rmse_op, summary_op):
 
       total_sample_count = num_iter * FLAGS.batch_size
       step = 0
+      index=0
+      while(1):
+          im, gtlms, pred_lms = sess.run([tfimage, gt, preds])
+          im = im[0]
+          pts = pred_lms[0][0]
+          GT = gtlms[0]
+          image = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
+          image = cv2.resize(image, (512, 512), 0)
+          pts *= 512 / 199
+          GT *= 512 / 199
+          l1_distances = []
+          for i, pt in enumerate(pts):
+              gpt = GT[i]
+              single_pt_distance = np.sqrt(np.square(pt[0] - gpt[0]) + np.square(pt[1] - gpt[1]))
+              l1_distances.append(single_pt_distance)
+              pred_pt = (int(pt[0]), int(pt[1]))
+              grnd_pt = (int(gpt[0]), int(gpt[1]))
+              cv2.circle(image, pred_pt, 2, (255, 0, 0))
+              cv2.line(image, pred_pt, grnd_pt, (0, 0, 255))
+          cv2.imwrite(_OUTPUT_PATH_ + 'images/' + str(index) + '.jpg', image)
+          results_dict={'L1_error': np.asarray(l1_distances)}
+          with open(_OUTPUT_PATH_ + 'pickles/' + str(index) + '.pickle', 'wb') as pick_out:
+              pickle.dump(results_dict, pick_out)
+          #cv2.imshow('image', image)
+          #cv2.waitKey(0)
 
       print('%s: starting evaluation on (%s).' % (datetime.now(), FLAGS.dataset_path))
       start_time = time.time()
@@ -158,10 +189,16 @@ def flip_predictions(predictions, shapes):
 '''
 
 def evaluate(dataset_path):
-  """Evaluate model on Dataset for a number of steps."""
-  with tf.Graph().as_default(), tf.device('/cpu:0'):
+    """Evaluate model on Dataset for a number of steps."""
     train_dir = Path(FLAGS.checkpoint_dir)
-    
+    images, gt_shapes, initial_shapes = data_provider.super_batch_inputs(
+        None, batch_size=_BATCH_SIZE, is_training=False)
+    patch_shape = (FLAGS.patch_size, FLAGS.patch_size)
+    preds = mdm_model.model(images, initial_shapes, patch_shape=patch_shape, bs=_BATCH_SIZE)
+    saver = tf.train.Saver()
+    _eval_once(saver, images, gt_shapes, preds)
+
+    '''
     images, gt_truth, inits, _ = data_provider.read_images(
             [dataset_path],
             batch_size=FLAGS.batch_size, is_training=False)
@@ -179,11 +216,13 @@ def evaluate(dataset_path):
         pred = preds[-1]
 
         tf.get_variable_scope().reuse_variables()
-
+    
         preds_mirrored = mdm_model.model(
            mirrored_images, mirrored_inits, patch_shape=patch_shape)
         pred_mirrored = preds_mirrored[-1]
-
+        
+    
+    
     pred_images, = tf.py_func(utils.batch_draw_landmarks,
             [images, pred], [tf.float32])
     gt_images, = tf.py_func(utils.batch_draw_landmarks,
@@ -198,7 +237,8 @@ def evaluate(dataset_path):
     if FLAGS.mirror_images:
         avg_pred += tf.py_func(flip_predictions, (pred_mirrored, shapes), (tf.float32, ))[0]
         avg_pred /= 2.
-
+    
+    
     # Calculate predictions.
     norm_error = losses.normalized_rmse(avg_pred, gt_truth)
 
@@ -220,6 +260,6 @@ def evaluate(dataset_path):
       if FLAGS.run_once:
         break
       time.sleep(FLAGS.eval_interval_secs)
-
+    '''
 if __name__ == '__main__':
     evaluate(FLAGS.dataset_path)
