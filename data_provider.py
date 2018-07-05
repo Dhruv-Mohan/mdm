@@ -1,23 +1,123 @@
 from functools import partial
+'''
 from menpo.shape.pointcloud import PointCloud
 from menpofit.builder import compute_reference_shape
 from menpofit.builder import rescale_images_to_reference_shape
 from menpofit.fitter import (noisy_shape_from_bounding_box,
                              align_shape_with_bounding_box)
+'''
 from pathlib import Path
 
-import joblib
-import menpo.feature
-import menpo.image
-import menpo.io as mio
+#import joblib
+#import menpo.feature
+#import menpo.image
+#import menpo.io as mio
 import numpy as np
 import tensorflow as tf
+import cv2
 # import detect
 import utils
 _build_ref_ = True
 slim = tf.contrib.slim
+import os
 
 FLAGS = tf.app.flags.FLAGS
+_TRAIN_IMAGES_ = '/home/dhruv/Projects/PersonalGit/Data/output/images/'
+_LABEL_PATH_ = '/home/dhruv/Projects/PersonalGit/Data/output/pts/'
+_MEAN_PATH_ = '/home/dhruv/Projects/PersonalGit/Data/output/inits/'
+_TRAIN_IMAGES_ = '/home/dhruv/Projects/Datasets/Datasetdir/Facelandmark/custom/menpoout/images/'
+_LABEL_PATH_ = '/home/dhruv/Projects/Datasets/Datasetdir/Facelandmark/custom/menpoout/pts/'
+_MEAN_PATH_ = '/home/dhruv/Projects/Datasets/Datasetdir/Facelandmark/custom/menpoout/inits/'
+_VAL_IMAGES_ ='/home/dhruv/Projects/Datasets/Datasetdir/Facelandmark/custom/menpoout/val'
+_PATCHES_ = 90
+_PAD_WIDTH_ = 199
+
+def pad_image(image, init_pts, mean_pts, shape):
+
+    canvas = np.zeros(shape + [3], np.uint8)
+    im_shape = image.shape
+    index = 0
+    if im_shape[0] <= im_shape[1]:
+        index = 1
+
+    resize_factor = shape[1] / float(im_shape[index])
+    new_shape = [0, 0]
+    new_shape[index] = shape[1]
+    new_shape[abs(index-1)] = int(resize_factor * im_shape[abs(index - 1)])
+    image = cv2.resize(image, (new_shape[1], new_shape[0]), 0)
+    canvas[0: new_shape[0], 0:new_shape[1]] = image
+
+    init_pts[:, abs(index-1)] = init_pts[:, abs(index-1)] * new_shape[index]
+    init_pts[:, index] =  init_pts[:, index] * new_shape[abs(index-1)]
+
+
+    mean_pts[:, abs(index-1)] = mean_pts[:, abs(index-1)] * new_shape[index] / im_shape[index]
+    mean_pts[:, index] =  mean_pts[:, index] * new_shape[abs(index-1)]/ im_shape[abs(index-1)]
+    #canvas = canvas.astype(np.float32) / 255.0
+    #canvas -= 0.5
+    #canvas *= 2.0
+    return canvas, init_pts, mean_pts
+
+def get_classification_image(path):
+    image = cv2.imread(path.decode())
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    return image
+
+def get_landmarks_and_mean(name):
+    lmpts_name = _LABEL_PATH_ + name + '.pts'
+    lmpts = get_pts(lmpts_name)
+    mean_pts = get_pts(_MEAN_PATH_ + name + '.pts')
+    #print(mean_pts)
+    #input('meanprint')
+    #mean_pts = get_pts(_MEAN_PATH_
+    return lmpts, mean_pts
+
+
+def get_pts(filename):
+    with open(filename) as f:
+        data= f.read().split()
+        data = np.asarray(data, np.float32)
+        data = np.reshape(data, (_PATCHES_, 2))
+    return data
+
+
+def align_landmark_image(image, lmpts, mean_pts):
+    shape2 = image.shape
+    lm_image, lmpts, init_pts = pad_image(image, lmpts, mean_pts, shape=[_PAD_WIDTH_, _PAD_WIDTH_])
+    lmpts[:,0] = lmpts[:, 0] /shape2[1]
+    lmpts[:,1] = lmpts[:, 1] /shape2[0]
+
+
+    lm_image = lm_image.astype(np.float32)
+    lm_image = lm_image / 255.0
+    '''
+    lm_image -= 0.5
+    lm_image *= 2.0
+    '''
+    return lm_image, lmpts, init_pts
+
+def get_image_tags_points(path):
+    name = os.path.split(path.decode())[1]
+    name = os.path.splitext(name)[0]
+
+    image = get_classification_image(path)
+    #GT_data = get_tags(name)
+
+    lmpts, mean_pts = get_landmarks_and_mean(name)
+
+    lm_image, lmpts, init_pts = align_landmark_image(image.copy(), lmpts.copy(), mean_pts.copy())
+
+    return lm_image, lmpts, init_pts
+
+def decode_img_lmpts(image1):
+    image, lmpts, init_pts= tf.py_func(get_image_tags_points, [image1], (tf.float32, tf.float32, tf.float32))
+    #image = inception_preprocessing.preprocess_image(image, _IMAGE_HEIGHT_, _IMAGE_WIDTH_, is_training=False)
+    image.set_shape([_PAD_WIDTH_, _PAD_WIDTH_, 3])
+    lmpts.set_shape([_PATCHES_, 2])
+    init_pts.set_shape([_PATCHES_, 2])
+
+    return image, lmpts, init_pts
+
 
 def build_reference_shape(paths, diagonal=200):
     """Builds the reference shape.
@@ -34,7 +134,7 @@ def build_reference_shape(paths, diagonal=200):
         landmarks += [
             group.lms
             for group in mio.import_landmark_files(path, verbose=True)
-            if group.lms.n_points == 68
+            if group.lms.n_points == _PATCHES_
         ]
 
     return compute_reference_shape(landmarks,
@@ -189,7 +289,7 @@ def load_image(path, reference_shape, is_training=False, group='PTS',
 
     bb = im.landmarks['bb'].lms.bounding_box()
 
-    im.landmarks['__initial'] = align_shape_with_bounding_box(reference_shape,
+    im.landmarks['__initial'] = noisy_shape_from_bounding_box(reference_shape,
                                                               bb)
     im = im.rescale_to_pointcloud(reference_shape, group='__initial')
 
@@ -209,7 +309,7 @@ def load_image(path, reference_shape, is_training=False, group='PTS',
 def read_images(paths,
                  batch_size=32,
                  is_training=False,
-                 num_landmarks=68,
+                 num_landmarks=_PATCHES_,
                  mirror_image=False):
     """Reads the files off the disk and produces batches.
     Args:
@@ -270,7 +370,7 @@ def read_images(paths,
 def batch_inputs(paths,
                  batch_size=32,
                  is_training=False,
-                 num_channels=3, num_landmarks=68):
+                 num_channels=3, num_landmarks=_PATCHES_):
     """Reads the files off the disk and produces batches.
 
     Args:
@@ -320,5 +420,35 @@ def batch_inputs(paths,
                                         capacity=1000,
                                         enqueue_many=False,
                                         dynamic_pad=True)
+
+    return images, lms, inits
+
+def super_batch_inputs(paths,
+                 batch_size=32,
+                 is_training=False,
+                 num_channels=3, num_landmarks=68):
+    """Reads the files off the disk and produces batches.
+
+    Args:
+      paths: a list of directories that contain training images and
+        the corresponding landmark files.
+      reference_shape: a numpy array [num_landmarks, 2]
+      batch_size: the batch size.
+      is_traininig: whether in training mode.
+    Returns:
+      images: a tf tensor of shape [batch_size, width, height, 3].
+      lms: a tf tensor of shape [batch_size, 68, 2].
+      lms_init: a tf tensor of shape [batch_size, 68, 2].
+    """
+    Train_images = os.listdir(_TRAIN_IMAGES_)
+    Train_images_full = []
+    for image in Train_images:
+        Train_images_full.append(_TRAIN_IMAGES_ + image)
+    dataset = tf.data.Dataset.from_tensor_slices((Train_images_full))
+    dataset = dataset.shuffle(buffer_size=25000).repeat()
+    dataset = dataset.map(decode_img_lmpts)
+    dataset = dataset.batch(batch_size)
+    train_iterator = dataset.make_one_shot_iterator()
+    images, lms, inits = train_iterator.get_next()
 
     return images, lms, inits

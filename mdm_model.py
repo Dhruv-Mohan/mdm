@@ -4,7 +4,7 @@ import utils
 import numpy as np
 from functools import partial
 slim = tf.contrib.slim
-
+_PATCHES_ = 90
 #_extract_patches_module = tf.load_op_library('/homes/gt108/Projects/tf_extract_patches/extract_patches.so')
 
 def convolutional_model_mini(inputs):   
@@ -118,15 +118,17 @@ def extract_patches_image(image, centres, sampling_grid=default_sampling_grid):
 
     return tf.gather_nd(image, tf.transpose(tf.stack([Y, X]), (2, 3, 1, 0)))
 
-def extract_patches(images, centres, sampling_grid=default_sampling_grid):
+def extract_patches(images, centres, sampling_grid=default_sampling_grid, bs=30):
     batch_size = images.get_shape().as_list()[0]
+    batch_size = bs
     patches = tf.stack([extract_patches_image(images[i], centres[i], sampling_grid=sampling_grid)
                        for i in range(batch_size)])
     return tf.transpose(patches, [0, 3, 1, 2, 4])
 
-def model(images, initial_shapes, num_iterations=3, num_patches=68, patch_shape=(30, 30), hidden_size=256, num_channels=3):
+def model(images, initial_shapes, num_iterations=3, num_patches=_PATCHES_, patch_shape=(30, 30), hidden_size=256, num_channels=3, bs = 30):
   sampling_grid = build_sampling_grid(patch_shape)
   batch_size = images.get_shape().as_list()[0]
+  batch_size = bs
   hidden_state = tf.zeros((batch_size, hidden_size))
   deltas = tf.zeros((batch_size, num_patches, 2))
   predictions = []
@@ -134,7 +136,7 @@ def model(images, initial_shapes, num_iterations=3, num_patches=68, patch_shape=
   for step in range(num_iterations):
       with tf.device('/cpu:0'):
           # patches = _extract_patches_module.extract_patches(images, tf.constant(patch_shape), initial_shapes + deltas)
-          patches = extract_patches(images, initial_shapes + deltas, sampling_grid=sampling_grid)
+          patches = extract_patches(images, initial_shapes + deltas, sampling_grid=sampling_grid, bs=batch_size)
           # TODO: Implement the gradient.
           patches = tf.stop_gradient(patches)
 

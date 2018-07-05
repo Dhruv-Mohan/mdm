@@ -1,5 +1,5 @@
 import numpy as np
-from menpo.shape import PointCloud
+#from menpo.shape import PointCloud
 import cv2
 
 jaw_indices = np.arange(0, 17)
@@ -73,11 +73,16 @@ def line(image, x0, y0, x1, y1, color):
             image[int(y), x] = color
 
 
-def draw_landmarks(img, lms):
+def draw_landmarks(img, lms, gts):
     try:
         img = img.copy()
-        for pt in lms:
-            cv2.circle(img, (int(pt[0], int(pt[1]))), 3, (1,0,0))
+        for i, pt in enumerate(lms):
+            py = int(pt[1])
+            px = int(pt[0])
+            gy = int(gts[i][1])
+            gx = int(gts[i][0])
+            cv2.circle(img, (px,py), 3, (1,0,0))
+            cv2.line(img, (px,py), (gx,gy), (0,0,1), 1)
         '''
         for i, part in enumerate(parts_68[1:]):
             circular = []
@@ -95,8 +100,8 @@ def draw_landmarks(img, lms):
     return img
 
 
-def batch_draw_landmarks(imgs, lms):
-    return np.array([draw_landmarks(img, l) for img, l in zip(imgs, lms)])
+def batch_draw_landmarks(imgs, lms, gts):
+    return np.array([draw_landmarks(img, l, gt) for img, l , gt in zip(imgs, lms, gts)])
 
 
 def get_central_crop(images, box=(6, 6)):

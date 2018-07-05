@@ -4,7 +4,7 @@ import mdm_model
 import tensorflow as tf
 import utils
 import losses
-import menpo.io as mio
+
 
 from pathlib import Path
 from tensorflow.python.platform import tf_logging as logging
@@ -38,9 +38,9 @@ tf.app.flags.DEFINE_integer('patch_size', 30, 'The extracted patch size')
 # The decay to use for the moving average.
 MOVING_AVERAGE_DECAY = 0.9999
 
-def draw_landmarks(images, landmarks):
+def draw_landmarks(images, landmarks, gts):
     return tf.py_func(utils.batch_draw_landmarks,
-               [images, landmarks], [tf.float32])[0]
+               [images, landmarks, gts], [tf.float32])[0]
 
 def train():
     g = tf.Graph()
@@ -48,14 +48,14 @@ def train():
     with g.as_default():
         # Load dataset.
         datasets = FLAGS.datasets.split(':')
-        images, gt_shapes, initial_shapes  = data_provider.batch_inputs(
+        images, gt_shapes, initial_shapes  = data_provider.super_batch_inputs(
             datasets, batch_size=FLAGS.batch_size, is_training=True)
 
         # Define model graph.
         patch_shape = (FLAGS.patch_size, FLAGS.patch_size)
         with slim.arg_scope(
             [slim.batch_norm, slim.layers.dropout], is_training=True):
-            predictions = mdm_model.model(images, initial_shapes, patch_shape=patch_shape)
+            predictions = mdm_model.model(images, initial_shapes, patch_shape=patch_shape, bs = FLAGS.batch_size)
 
         for i, prediction in enumerate(predictions):
             norm_error = losses.normalized_rmse(prediction, gt_shapes)
@@ -69,10 +69,10 @@ def train():
         total_loss = slim.losses.get_total_loss()
         tf.summary.scalar('losses/total loss', total_loss)
 
-        gt_images = draw_landmarks(images, gt_shapes)
+        gt_images = draw_landmarks(images, gt_shapes, gt_shapes)
         tf.summary.image('gt_images', gt_images)
-        init_images = draw_landmarks(images, initial_shapes)
-        pred_images = [init_images] + [draw_landmarks(images, x) for x in predictions]
+        init_images = draw_landmarks(images, initial_shapes, gt_shapes)
+        pred_images = [init_images] + [draw_landmarks(images, x, gt_shapes) for x in predictions]
         tf.summary.image('predictions', tf.concat(axis=2, values=pred_images))
        
         # Calculate the learning rate schedule.

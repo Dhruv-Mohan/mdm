@@ -9,7 +9,7 @@ from pathlib import Path
 
 import data_provider
 import math
-import menpo
+#import menpo
 import matplotlib
 import mdm_model
 import mdm_train
@@ -19,7 +19,7 @@ import tensorflow as tf
 import time
 import utils
 import losses
-import menpo.io as mio
+#import menpo.io as mio
 
 # Do not use a gui toolkit for matlotlib.
 matplotlib.use('Agg')
@@ -46,7 +46,7 @@ tf.app.flags.DEFINE_string('dataset_path', '/vol/atlas/databases/300w_cropped/*.
                            """The dataset path to evaluate.""")
 tf.app.flags.DEFINE_string('device', '/cpu:0', 'the device to eval on.')
 
-
+'''
 def plot_ced(errors, method_names=['MDM']):
     from matplotlib import pyplot as plt
     from menpofit.visualize import plot_cumulative_error_distribution
@@ -65,7 +65,7 @@ def plot_ced(errors, method_names=['MDM']):
     data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
     plt.clf()
     return data
-
+'''
 
 def _eval_once(saver, summary_writer, rmse_op, summary_op):
   """Runs Eval once.
@@ -145,7 +145,7 @@ def _eval_once(saver, summary_writer, rmse_op, summary_op):
     coord.request_stop()
     coord.join(threads, stop_grace_period_secs=10)
 
-    
+'''    
 def flip_predictions(predictions, shapes):
     flipped_preds = []
     
@@ -155,7 +155,7 @@ def flip_predictions(predictions, shapes):
         flipped_preds.append(pred.points)
 
     return np.array(flipped_preds, np.float32)
-
+'''
 
 def evaluate(dataset_path):
   """Evaluate model on Dataset for a number of steps."""
