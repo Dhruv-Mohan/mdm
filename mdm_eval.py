@@ -72,6 +72,7 @@ def plot_ced(errors, method_names=['MDM']):
 _OUTPUT_PATH_ = '/home/dhruv/Projects/PersonalGit/mdm/output/'
 _TEST_ = True
 _BATCH_SIZE = 1
+_PAD_WIDTH_ = 199
 
 def _eval_once(saver, tfimage, gt, preds):
   """Runs Eval once.
@@ -113,13 +114,13 @@ def _eval_once(saver, tfimage, gt, preds):
       index=0
       while(1):
           im, gtlms, pred_lms = sess.run([tfimage, gt, preds])
-          im = im[0]
-          pts = pred_lms[0][0]
+          im = im[0] * 255
+          pts = pred_lms[0]
           GT = gtlms[0]
           image = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
           image = cv2.resize(image, (512, 512), 0)
-          pts *= 512 / 199
-          GT *= 512 / 199
+          pts *= 512 / _PAD_WIDTH_
+          GT *= 512 / _PAD_WIDTH_
           l1_distances = []
           for i, pt in enumerate(pts):
               gpt = GT[i]
@@ -130,9 +131,11 @@ def _eval_once(saver, tfimage, gt, preds):
               cv2.circle(image, pred_pt, 2, (255, 0, 0))
               cv2.line(image, pred_pt, grnd_pt, (0, 0, 255))
           cv2.imwrite(_OUTPUT_PATH_ + 'images/' + str(index) + '.jpg', image)
-          results_dict={'L1_error': np.asarray(l1_distances)}
+          results_dict={'L1_error': np.asarray(l1_distances), 'PREDS': 0, 'GT_tags':0}
           with open(_OUTPUT_PATH_ + 'pickles/' + str(index) + '.pickle', 'wb') as pick_out:
               pickle.dump(results_dict, pick_out)
+
+          index += 1
           #cv2.imshow('image', image)
           #cv2.waitKey(0)
 
@@ -196,6 +199,7 @@ def evaluate(dataset_path):
     patch_shape = (FLAGS.patch_size, FLAGS.patch_size)
     preds = mdm_model.model(images, initial_shapes, patch_shape=patch_shape, bs=_BATCH_SIZE)
     saver = tf.train.Saver()
+    preds = preds[-1]
     _eval_once(saver, images, gt_shapes, preds)
 
     '''

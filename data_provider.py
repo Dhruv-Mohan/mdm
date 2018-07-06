@@ -25,12 +25,14 @@ FLAGS = tf.app.flags.FLAGS
 _TRAIN_IMAGES_ = '/home/dhruv/Projects/PersonalGit/Data/output/images/'
 _LABEL_PATH_ = '/home/dhruv/Projects/PersonalGit/Data/output/pts/'
 _MEAN_PATH_ = '/home/dhruv/Projects/PersonalGit/Data/output/inits/'
+_VAL_IMAGES_ ='/home/dhruv/Projects/PersonalGit/Data/output/val/'
 _TRAIN_IMAGES_ = '/home/dhruv/Projects/Datasets/Datasetdir/Facelandmark/custom/menpoout/images/'
 _LABEL_PATH_ = '/home/dhruv/Projects/Datasets/Datasetdir/Facelandmark/custom/menpoout/pts/'
 _MEAN_PATH_ = '/home/dhruv/Projects/Datasets/Datasetdir/Facelandmark/custom/menpoout/inits/'
 _VAL_IMAGES_ ='/home/dhruv/Projects/Datasets/Datasetdir/Facelandmark/custom/menpoout/val'
 _PATCHES_ = 90
 _PAD_WIDTH_ = 199
+_TRAINING_ = True
 
 def pad_image(image, init_pts, mean_pts, shape):
 
@@ -112,7 +114,10 @@ def get_image_tags_points(path):
 def decode_img_lmpts(image1):
     image, lmpts, init_pts= tf.py_func(get_image_tags_points, [image1], (tf.float32, tf.float32, tf.float32))
     #image = inception_preprocessing.preprocess_image(image, _IMAGE_HEIGHT_, _IMAGE_WIDTH_, is_training=False)
+
     image.set_shape([_PAD_WIDTH_, _PAD_WIDTH_, 3])
+    if _TRAINING_:
+        image = distort_color(image)
     lmpts.set_shape([_PATCHES_, 2])
     init_pts.set_shape([_PATCHES_, 2])
 

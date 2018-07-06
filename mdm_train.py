@@ -21,8 +21,8 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_float('initial_learning_rate', 1e-3, 'Initial learning rate.')
 tf.app.flags.DEFINE_float('decay_steps', 15000, 'Number of steps to decay learning rate.')
 tf.app.flags.DEFINE_float('learning_rate_decay_factor', 0.1, 'Learning rate decay factor.')
-tf.app.flags.DEFINE_integer('batch_size', 30, '''The batch size to use.''')
-tf.app.flags.DEFINE_integer('num_preprocess_threads', 16, 'How many preprocess threads to use.')
+tf.app.flags.DEFINE_integer('batch_size', 40, '''The batch size to use.''')
+tf.app.flags.DEFINE_integer('num_preprocess_threads', 32, 'How many preprocess threads to use.')
 tf.app.flags.DEFINE_string('train_dir', 'ckpt/train',
                            '''Directory where to write event logs '''
                            '''and checkpoint.''')
