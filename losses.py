@@ -20,6 +20,8 @@ def normalized_rmse_2(pred, gt_truth):
     right_eye_index = 45
     left_eye_index = 59
     right_eye_index = 69
+    left_eye_index = 20
+    right_eye_index = 29
 
     assert pred.get_shape()[1] == gt_truth.get_shape()[1] == n_landmarks
     norm = tf.nn.l2_normalize(
@@ -29,6 +31,7 @@ def normalized_rmse_2(pred, gt_truth):
     return tf.reduce_sum(rmse, 1) / (norm * n_landmarks)
 
 def normalized_rmse(pred, gt_truth):
-    norm = tf.sqrt(1e-12 + tf.reduce_sum(((gt_truth[:, 59, :] - gt_truth[:, 69, :])**2), 1))
+    norm = tf.sqrt(1e-12 + tf.reduce_sum(((gt_truth[:, 20, :] - gt_truth[:, 29, :])**2), 1))
 
     return tf.reduce_sum(tf.sqrt(1e-12 + tf.reduce_sum(tf.square(pred - gt_truth), 2)), 1) / (norm * 90)
+    #return tf.reduce_sum(tf.sqrt(1e-12 + tf.reduce_sum(tf.square(pred - gt_truth), 2)), 1) / (norm * 90)

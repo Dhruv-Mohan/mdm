@@ -20,19 +20,34 @@ import utils
 _build_ref_ = True
 slim = tf.contrib.slim
 import os
-
+import imgaug as ia
+from imgaug import augmenters as iaa
 FLAGS = tf.app.flags.FLAGS
 _TRAIN_IMAGES_ = '/home/dhruv/Projects/PersonalGit/Data/output/images/'
 _LABEL_PATH_ = '/home/dhruv/Projects/PersonalGit/Data/output/pts/'
 _MEAN_PATH_ = '/home/dhruv/Projects/PersonalGit/Data/output/inits/'
 _VAL_IMAGES_ ='/home/dhruv/Projects/PersonalGit/Data/output/val/'
-_TRAIN_IMAGES_ = '/home/dhruv/Projects/Datasets/Datasetdir/Facelandmark/custom/menpoout/images/'
-_LABEL_PATH_ = '/home/dhruv/Projects/Datasets/Datasetdir/Facelandmark/custom/menpoout/pts/'
-_MEAN_PATH_ = '/home/dhruv/Projects/Datasets/Datasetdir/Facelandmark/custom/menpoout/inits/'
-_VAL_IMAGES_ ='/home/dhruv/Projects/Datasets/Datasetdir/Facelandmark/custom/menpoout/val'
+_TRAIN_IMAGES_ = '/home/dhruv/Projects/Datasets/Groomyfy_16k/Menpo/images/'
+_LABEL_PATH_ = '/home/dhruv/Projects/Datasets/Groomyfy_16k/Menpo/pts/'
+_MEAN_PATH_ = '/home/dhruv/Projects/Datasets/Groomyfy_16k/Menpo/inits/'
+_VAL_IMAGES_ ='/home/dhruv/Projects/Datasets/Groomyfy_16k/Menpo/val'
 _PATCHES_ = 90
 _PAD_WIDTH_ = 199
-_TRAINING_ = True
+_TRAINING_ = False
+
+aug = iaa.SomeOf((0, None), [
+    # iaa.AdditiveGaussianNoise(scale=(0, 0.002)),
+    iaa.Noop(),
+    iaa.GaussianBlur(sigma=(0.0, 1.5)),
+    #iaa.Dropout(p=(0, 0.02)),
+    iaa.AddElementwise((-20, 20), per_channel=0.5),
+    iaa.AdditiveGaussianNoise(scale=(0, 0.05 * 1)),
+    # iaa.ContrastNormalization((0.5, 1.5)),
+    iaa.Affine(scale=(0.9, 1.1), translate_percent={"x": (-0.05, 0.08), "y": (-0.01, 0.015)}, rotate=(-5, 5), shear=(-4,4), mode=['edge'])
+    #iaa.pad()
+    # iaa.CoarseDropout(0.2, size_percent=(0.001, 0.2))
+], random_order=True)
+
 
 def pad_image(image, init_pts, mean_pts, shape):
 
@@ -106,8 +121,24 @@ def get_image_tags_points(path):
     #GT_data = get_tags(name)
 
     lmpts, mean_pts = get_landmarks_and_mean(name)
+    if _TRAINING_:
+        aug_det = aug.to_deterministic()
+        kps = []
+        kps_on_im = []
+        for pt in lmpts:
+            kps.append(ia.Keypoint(x=pt[0], y=pt[1]))
+
+        kps_on_im.append(ia.KeypointsOnImage(kps, shape=image.shape))
+        image = aug_det.augment_image(image)
+        kps_on_im = aug_det.augment_keypoints(kps_on_im)[0]
+        kps = kps_on_im.keypoints
+        for i, kp in enumerate(kps):
+            lmpts[i, 0] = kp.x
+            lmpts[i, 1] = kp.y
 
     lm_image, lmpts, init_pts = align_landmark_image(image.copy(), lmpts.copy(), mean_pts.copy())
+
+
 
     return lm_image, lmpts, init_pts
 
