@@ -116,11 +116,11 @@ def _eval_once(saver, tfimage, gt, preds, names):
 
       total_sample_count = num_iter * FLAGS.batch_size
       step = 0
-      index=0
+
       while(1):
           im, gtlms, pred_lms, data_names = sess.run([tfimage, gt, preds, names])
           print(data_names[0].decode())
-          input('hold')
+          data_names = data_names[0].decode()
           im = im[0] * 255
           pts = pred_lms[0]
           GT = gtlms[0]
@@ -137,12 +137,14 @@ def _eval_once(saver, tfimage, gt, preds, names):
               grnd_pt = (int(gpt[0]), int(gpt[1]))
               cv2.circle(image, pred_pt, 2, (255, 0, 0))
               cv2.line(image, pred_pt, grnd_pt, (0, 0, 255))
-          cv2.imwrite(_OUTPUT_PATH_ + 'images/' + str(index) + '.jpg', image)
+          cv2.imwrite(_OUTPUT_PATH_ + 'images/' + data_names + '.jpg', image)
           results_dict={'L1_error': np.asarray(l1_distances), 'PREDS': 0, 'GT_tags':0}
-          with open(_OUTPUT_PATH_ + 'pickles/' + str(index) + '.pickle', 'wb') as pick_out:
+          with open(_OUTPUT_PATH_ + 'pickles/' + data_names + '.pickle', 'wb') as pick_out:
               pickle.dump(results_dict, pick_out)
+          with open(_OUTPUT_PATH_ +'inits/' +data_names + '.pts', 'w') as inits:
+              write_pts(inits, pts, menpo=False)
 
-          index += 1
+
           #cv2.imshow('image', image)
           #cv2.waitKey(0)
 
