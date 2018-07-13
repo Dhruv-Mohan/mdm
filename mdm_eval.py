@@ -20,7 +20,7 @@ import time
 import utils
 import losses
 #import menpo.io as mio
-import cv2
+#import cv2
 import pickle
 _UTILS_PATH_ = '/home/dhruv/Projects/PersonalGit/Mypyscripts/Mypyscripts/utils'
 
@@ -53,7 +53,7 @@ tf.app.flags.DEFINE_string('dataset_path', '/vol/atlas/databases/300w_cropped/*.
                            """The dataset path to evaluate.""")
 tf.app.flags.DEFINE_string('device', '/cpu:0', 'the device to eval on.')
 
-'''
+
 def plot_ced(errors, method_names=['MDM']):
     from matplotlib import pyplot as plt
     from menpofit.visualize import plot_cumulative_error_distribution
@@ -72,14 +72,14 @@ def plot_ced(errors, method_names=['MDM']):
     data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
     plt.clf()
     return data
-'''
+
 
 _OUTPUT_PATH_ = '/home/dhruv/Projects/PersonalGit/mdm/output/'
 _TEST_ = True
 _BATCH_SIZE = 1
 _PAD_WIDTH_ = 512
 
-def _eval_once(saver, tfimage, gt, preds, names):
+def _eval_once(saver, tfimage, gt, preds, names, summary_writer, rmse_op, summary_op):
   """Runs Eval once.
   Args:
     saver: Saver.
@@ -116,8 +116,8 @@ def _eval_once(saver, tfimage, gt, preds, names):
 
       total_sample_count = num_iter * FLAGS.batch_size
       step = 0
-
-      while(1):
+      '''
+      while(step<100):
           im, gtlms, pred_lms, data_names = sess.run([tfimage, gt, preds, names])
           print(data_names[0].decode())
           data_names = data_names[0].decode()
@@ -145,13 +145,13 @@ def _eval_once(saver, tfimage, gt, preds, names):
           with open(_OUTPUT_PATH_ +'mdminits/' +data_names + '.pts', 'w') as inits:
               write_pts(inits, pts, menpo=False)
 
-
-          cv2.imshow('image', image)
-          cv2.waitKey(0)
-
+          step +=1
+          #cv2.imshow('image', image)
+          #cv2.waitKey(0)
+      '''
       print('%s: starting evaluation on (%s).' % (datetime.now(), FLAGS.dataset_path))
       start_time = time.time()
-      while step < num_iter and not coord.should_stop():
+      while step < 100 and not coord.should_stop():
         rmse = sess.run(rmse_op)
         errors.append(rmse)
         step += 1
@@ -169,7 +169,7 @@ def _eval_once(saver, tfimage, gt, preds, names):
       auc_at_08 = (errors < .08).mean()
       auc_at_05 = (errors < .05).mean()
       ced_image = plot_ced([errors.tolist()])
-      ced_plot = sess.run(tf.merge_summary([tf.image_summary('ced_plot', ced_image[None, ...])]))
+      ced_plot = sess.run(tf.summary.merge([tf.summary.image('ced_plot', ced_image[None, ...])]))
 
       print('Errors', errors.shape)
       print('%s: mean_rmse = %.4f, auc @ 0.05 = %.4f, auc @ 0.08 = %.4f [%d examples]' %
@@ -210,8 +210,22 @@ def evaluate(dataset_path):
     preds = mdm_model.model(images, initial_shapes, patch_shape=patch_shape, bs=_BATCH_SIZE)
     saver = tf.train.Saver()
     preds = preds[-1]
-    _eval_once(saver, images, gt_shapes, preds, names)
 
+    pred_images, = tf.py_func(utils.batch_draw_landmarks,
+            [images, preds, gt_shapes], [tf.float32])
+    gt_images, = tf.py_func(utils.batch_draw_landmarks,
+            [images, gt_shapes, gt_shapes], [tf.float32])
+    summaries = []
+    summaries.append(tf.summary.image('images',
+                                      tf.concat(axis=2, values=[gt_images, pred_images])))
+
+    avg_pred = preds
+    norm_error = losses.normalized_rmse(avg_pred, gt_shapes)
+    graph_def = tf.get_default_graph().as_graph_def()
+    summary_writer = tf.summary.FileWriter(FLAGS.eval_dir,
+                                            graph_def=graph_def)
+    summary_op = tf.summary.merge(summaries)
+    _eval_once(saver, images, gt_shapes, preds, names, summary_writer, norm_error, summary_op)
     '''
     images, gt_truth, inits, _ = data_provider.read_images(
             [dataset_path],

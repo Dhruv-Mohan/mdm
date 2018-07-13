@@ -20,8 +20,9 @@ import utils
 _build_ref_ = True
 slim = tf.contrib.slim
 import os
-import imgaug as ia
-from imgaug import augmenters as iaa
+#import imgaug as ia
+#from imgaug import augmenters as iaa
+
 FLAGS = tf.app.flags.FLAGS
 _TRAIN_IMAGES_ = '/home/dhruv/Projects/PersonalGit/Data/output/images/'
 _LABEL_PATH_ = '/home/dhruv/Projects/PersonalGit/Data/output/pts/'
@@ -30,25 +31,29 @@ _VAL_IMAGES_ ='/home/dhruv/Projects/PersonalGit/Data/output/val/'
 _TRAIN_IMAGES_ = '/home/dhruv/Projects/Datasets/Groomyfy_16k/Menpo512/images/'
 _LABEL_PATH_ = '/home/dhruv/Projects/Datasets/Groomyfy_16k/Menpo512/pts/'
 _MEAN_PATH_ = '/home/dhruv/Projects/Datasets/Groomyfy_16k/Menpo512/inits/'
-_MEAN_PATH_ = '/home/dhruv/Projects/Datasets/Groomyfy_16k/Menpo512/mdminits/'
-_VAL_IMAGES_ ='/home/dhruv/Projects/Datasets/Groomyfy_16k/Menpo512/images/'
+
+_VAL_IMAGES_ ='/home/dhruv/Projects/Datasets/Groomyfy_16k/Menpo512/val100/'
 _PATCHES_ = 90
 _PAD_WIDTH_ = 512
 _TRAINING_ = False
+_MDM_INIT_ = True
 
+if _MDM_INIT_:
+    _MEAN_PATH_ = '/home/dhruv/Projects/Datasets/Groomyfy_16k/Menpo512/mdminits/'
+'''
 aug = iaa.SomeOf((0, None), [
     # iaa.AdditiveGaussianNoise(scale=(0, 0.002)),
     iaa.Noop(),
-    iaa.GaussianBlur(sigma=(0.0, 1.5)),
+    iaa.GaussianBlur(sigma=(0.0, 0.15)),
     #iaa.Dropout(p=(0, 0.02)),
-    iaa.AddElementwise((-20, 20), per_channel=0.5),
-    iaa.AdditiveGaussianNoise(scale=(0, 0.05 * 1)),
+    iaa.AddElementwise((-10, 10), per_channel=0.5),
+    iaa.AdditiveGaussianNoise(scale=(0, 0.05 * 0.1)),
     # iaa.ContrastNormalization((0.5, 1.5)),
-    iaa.Affine(scale=(0.9, 1.1), translate_percent={"x": (-0.05, 0.08), "y": (-0.01, 0.015)}, rotate=(-5, 5), shear=(-4,4), mode=['edge'])
+    iaa.Affine(scale=(0.95, 1.01), translate_percent={"x": (-0.001, 0.001), "y": (-0.001, 0.001)}, rotate=(-2, 2), shear=(-1, 1), mode=['edge'])
     #iaa.pad()
     # iaa.CoarseDropout(0.2, size_percent=(0.001, 0.2))
 ], random_order=True)
-
+'''
 
 def pad_image(image, init_pts, mean_pts, shape):
 
@@ -68,9 +73,9 @@ def pad_image(image, init_pts, mean_pts, shape):
     init_pts[:, abs(index-1)] = init_pts[:, abs(index-1)] * new_shape[index]
     init_pts[:, index] =  init_pts[:, index] * new_shape[abs(index-1)]
 
-
-    mean_pts[:, abs(index-1)] = mean_pts[:, abs(index-1)] * new_shape[index] / im_shape[index]
-    mean_pts[:, index] =  mean_pts[:, index] * new_shape[abs(index-1)]/ im_shape[abs(index-1)]
+    if not _MDM_INIT_:
+        mean_pts[:, abs(index-1)] = mean_pts[:, abs(index-1)] * new_shape[index] / im_shape[index]
+        mean_pts[:, index] =  mean_pts[:, index] * new_shape[abs(index-1)]/ im_shape[abs(index-1)]
     #canvas = canvas.astype(np.float32) / 255.0
     #canvas -= 0.5
     #canvas *= 2.0
@@ -453,7 +458,7 @@ def batch_inputs(paths,
 
     images, lms, inits = tf.train.batch([image, lms, lms_init],
                                         batch_size=batch_size,
-                                        num_threads=4,
+                                        num_threads=32,
                                         capacity=1000,
                                         enqueue_many=False,
                                         dynamic_pad=True)
@@ -486,7 +491,13 @@ def super_batch_inputs(paths,
     images_full = []
     for image in images:
         images_full.append(os.path.join(data_path, image))
-
+    filename_queue = tf.train.string_input_producer(images_full)
+    image, lmpts, init_pts, name = tf.py_func(get_image_tags_points, [filename_queue.dequeue()],
+                                              (tf.float32, tf.float32, tf.float32, tf.string))
+    lmpts.set_shape([_PATCHES_, 2])
+    init_pts.set_shape([_PATCHES_, 2])
+    image.set_shape([_PAD_WIDTH_, _PAD_WIDTH_, 3])
+    '''
     dataset = tf.data.Dataset.from_tensor_slices((images_full))
 
     if is_training:
@@ -498,5 +509,12 @@ def super_batch_inputs(paths,
 
     iterator = dataset.make_one_shot_iterator()
     images, lms, inits , names = iterator.get_next()
-
+    '''
+    names ='shit'
+    images, lms, inits = tf.train.batch([image, lmpts, init_pts],
+                                        batch_size=batch_size,
+                                        num_threads=32,
+                                        capacity=1000,
+                                        enqueue_many=False,
+                                        dynamic_pad=False)
     return images, lms, inits, names

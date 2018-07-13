@@ -18,10 +18,10 @@ __datasets_dir = Path('/vol/atlas/databases/tf_records')
 __training_paths = [str(__datasets_dir / (('pertubed_' if use_pertubed else '') + x + '.tfrecords')) for x in __training_datasets]
 
 FLAGS = tf.app.flags.FLAGS
-tf.app.flags.DEFINE_float('initial_learning_rate', 0.01, 'Initial learning rate.')
+tf.app.flags.DEFINE_float('initial_learning_rate', 0.0001, 'Initial learning rate.')
 tf.app.flags.DEFINE_float('decay_steps', 50000, 'Number of steps to decay learning rate.')
 tf.app.flags.DEFINE_float('learning_rate_decay_factor', 0.1, 'Learning rate decay factor.')
-tf.app.flags.DEFINE_integer('batch_size', 6, '''The batch size to use.''')
+tf.app.flags.DEFINE_integer('batch_size', 3, '''The batch size to use.''')
 tf.app.flags.DEFINE_integer('num_preprocess_threads', 32, 'How many preprocess threads to use.')
 tf.app.flags.DEFINE_string('train_dir', 'ckpt/train',
                            '''Directory where to write event logs '''
@@ -76,7 +76,7 @@ def train():
         tf.summary.image('predictions', tf.concat(axis=2, values=pred_images))
        
         # Calculate the learning rate schedule.
-        decay_steps = 50000
+        decay_steps = FLAGS.initial_learning_rate
 
         global_step = slim.get_global_step() or slim.create_global_step()
 

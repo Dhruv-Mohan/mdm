@@ -5,14 +5,14 @@ import numpy as np
 from functools import partial
 slim = tf.contrib.slim
 _PATCHES_ = 90
-TRAINING_ = False
+_TRAINING_ = True
 #_extract_patches_module = tf.load_op_library('/homes/gt108/Projects/tf_extract_patches/extract_patches.so')
 import sys
 _slim_path = '/home/dhruv/Projects/PersonalGit/tfslim/research/slim'
 sys.path.append(_slim_path)
 slim = tf.contrib.slim
-from nets import resnet_utils
-from nets import resnet_v2
+#from nets import resnet_utils
+#from nets import resnet_v2
 
 def convolutional_model_mini(inputs):   
   conv_settings = dict(
@@ -101,26 +101,27 @@ def convolutional_model(inputs):
 def convolutional_model3(inputs):
   with tf.variable_scope('convnet'):
     with slim.arg_scope([slim.conv2d], padding='SAME', num_outputs=64, kernel_size=3, normalizer_fn=slim.batch_norm):
-      with slim.arg_scope([slim.max_pool2d], kernel_size=2):
-        net = slim.conv2d(inputs, scope='conv_1')
-        net = slim.max_pool2d(net)
-        net = slim.conv2d(net, scope='conv_2')
-        net = slim.max_pool2d(net)
-        net = slim.conv2d(net, scope='conv_3')
-        net = slim.conv2d(net, scope='conv_3_2')
-        net = slim.max_pool2d(net)
-        net = slim.conv2d(net, scope='conv_4')
-        net = slim.conv2d(net, scope='conv_4_2')
-        net = slim.max_pool2d(net)
-        net = slim.conv2d(net, scope='conv_5')
-        net = slim.conv2d(net, scope='conv_5_2')
+        with slim.arg_scope([slim.batch_norm], is_training=_TRAINING_):
+          with slim.arg_scope([slim.max_pool2d], kernel_size=2):
+            net = slim.conv2d(inputs, scope='conv_1')
+            net = slim.max_pool2d(net)
+            net = slim.conv2d(net, scope='conv_2')
+            net = slim.max_pool2d(net)
+            net = slim.conv2d(net, scope='conv_3')
+            net = slim.conv2d(net, scope='conv_3_2')
+            net = slim.max_pool2d(net)
+            net = slim.conv2d(net, scope='conv_4')
+            net = slim.conv2d(net, scope='conv_4_2')
+            net = slim.max_pool2d(net)
+            net = slim.conv2d(net, scope='conv_5')
+            net = slim.conv2d(net, scope='conv_5_2')
 
   return net
 
 def convolutional_model2(inputs):
   with tf.variable_scope('convnet'):
     with slim.arg_scope([slim.conv2d], padding='SAME', num_outputs=64, kernel_size=3, normalizer_fn=slim.batch_norm):
-        with slim.arg_scope([slim.batch_norm], is_training=TRAINING_):
+        with slim.arg_scope([slim.batch_norm], is_training=_TRAINING_):
           with slim.arg_scope([slim.max_pool2d], kernel_size=2):
             net = slim.conv2d(inputs, scope='conv_1')
             net = slim.max_pool2d(net)
@@ -177,7 +178,7 @@ def extract_patches(images, centres, sampling_grid=default_sampling_grid, bs=30)
                        for i in range(batch_size)])
     return tf.transpose(patches, [0, 3, 1, 2, 4])
 
-def model(images, initial_shapes, num_iterations=3, num_patches=_PATCHES_, patch_shape=(72, 72), hidden_size=512, num_channels=3, bs = 30):
+def model(images, initial_shapes, num_iterations=5, num_patches=_PATCHES_, patch_shape=(72, 72), hidden_size=512, num_channels=3, bs = 30):
   sampling_grid = build_sampling_grid(patch_shape)
   batch_size = images.get_shape().as_list()[0]
   batch_size = bs
