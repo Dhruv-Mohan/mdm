@@ -32,8 +32,8 @@ _LABEL_PATH_ = '/home/dhruv/Projects/Datasets/Groomyfy_16k/Menpo/pts/'
 _MEAN_PATH_ = '/home/dhruv/Projects/Datasets/Groomyfy_16k/Menpo/inits/'
 _VAL_IMAGES_ ='/home/dhruv/Projects/Datasets/Groomyfy_16k/Menpo/val'
 _PATCHES_ = 90
-_PAD_WIDTH_ = 199
-_TRAINING_ = False
+_PAD_WIDTH_ = 512
+_TRAINING_ = True
 
 aug = iaa.SomeOf((0, None), [
     # iaa.AdditiveGaussianNoise(scale=(0, 0.002)),

@@ -7,6 +7,12 @@ slim = tf.contrib.slim
 _PATCHES_ = 90
 TRAINING_ = True
 #_extract_patches_module = tf.load_op_library('/homes/gt108/Projects/tf_extract_patches/extract_patches.so')
+import sys
+_slim_path = '/home/dhruv/Projects/PersonalGit/tfslim/research/slim'
+sys.path.append(_slim_path)
+slim = tf.contrib.slim
+from nets import resnet_utils
+from nets import resnet_v2
 
 def convolutional_model_mini(inputs):   
   conv_settings = dict(
@@ -110,6 +116,11 @@ def convolutional_model2(inputs):
 
   return net
 
+def convolutional_model_large_pad(inputs):
+    with slim.arg_scope(resnet_v2.resnet_arg_scope()):
+        net, end_points = resnet_v2.resnet_v2_12(inputs, 1, is_training=TRAINING_)
+        return(end_points['global_pool'])
+
 def build_sampling_grid(patch_shape):
     patch_shape = np.array(patch_shape)
     patch_half_shape = np.require(np.round(patch_shape / 2), dtype=int)
@@ -146,10 +157,11 @@ def extract_patches(images, centres, sampling_grid=default_sampling_grid, bs=30)
                        for i in range(batch_size)])
     return tf.transpose(patches, [0, 3, 1, 2, 4])
 
-def model(images, initial_shapes, num_iterations=3, num_patches=_PATCHES_, patch_shape=(30, 30), hidden_size=256, num_channels=3, bs = 30):
+def model(images, initial_shapes, num_iterations=3, num_patches=_PATCHES_, patch_shape=(72, 72), hidden_size=512, num_channels=3, bs = 30):
   sampling_grid = build_sampling_grid(patch_shape)
   batch_size = images.get_shape().as_list()[0]
   batch_size = bs
+  hidden_size = 256
   hidden_state = tf.zeros((batch_size, hidden_size))
   deltas = tf.zeros((batch_size, num_patches, 2))
   predictions = []
@@ -162,11 +174,12 @@ def model(images, initial_shapes, num_iterations=3, num_patches=_PATCHES_, patch
           patches = tf.stop_gradient(patches)
 
       # patches = tf.reshape(patches, (batch_size * num_patches, patch_shape[0], patch_shape[1], num_channels))
-      patches = tf.reshape(patches, (batch_size , num_patches * patch_shape[0], patch_shape[1], num_channels))
+      patches = tf.reshape(patches, (batch_size , 9 * patch_shape[0], 10*patch_shape[1], num_channels))
 
       
       with tf.variable_scope('convnet', reuse=step > 0):
-          features = convolutional_model2(patches)
+          #features = convolutional_model2(patches)
+          features = convolutional_model_large_pad(patches)
       features = tf.reshape(features, (batch_size, -1))
 
       with tf.variable_scope('rnn', reuse=step>0) as scope:

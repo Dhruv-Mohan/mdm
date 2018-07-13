@@ -72,7 +72,7 @@ def plot_ced(errors, method_names=['MDM']):
 _OUTPUT_PATH_ = '/home/dhruv/Projects/PersonalGit/mdm/output/'
 _TEST_ = True
 _BATCH_SIZE = 1
-_PAD_WIDTH_ = 199
+_PAD_WIDTH_ = 512
 
 def _eval_once(saver, tfimage, gt, preds):
   """Runs Eval once.
