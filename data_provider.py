@@ -140,10 +140,10 @@ def get_image_tags_points(path):
 
 
 
-    return lm_image, lmpts, init_pts
+    return lm_image, lmpts, init_pts, name
 
 def decode_img_lmpts(image1):
-    image, lmpts, init_pts= tf.py_func(get_image_tags_points, [image1], (tf.float32, tf.float32, tf.float32))
+    image, lmpts, init_pts, name = tf.py_func(get_image_tags_points, [image1], (tf.float32, tf.float32, tf.float32, tf.string))
     #image = inception_preprocessing.preprocess_image(image, _IMAGE_HEIGHT_, _IMAGE_WIDTH_, is_training=False)
 
     image.set_shape([_PAD_WIDTH_, _PAD_WIDTH_, 3])
@@ -152,7 +152,7 @@ def decode_img_lmpts(image1):
     lmpts.set_shape([_PATCHES_, 2])
     init_pts.set_shape([_PATCHES_, 2])
 
-    return image, lmpts, init_pts
+    return image, lmpts, init_pts, name
 
 
 def build_reference_shape(paths, diagonal=200):
@@ -496,6 +496,6 @@ def super_batch_inputs(paths,
 
 
     iterator = dataset.make_one_shot_iterator()
-    images, lms, inits = iterator.get_next()
+    images, lms, inits , names = iterator.get_next()
 
-    return images, lms, inits
+    return images, lms, inits, names

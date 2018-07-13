@@ -48,7 +48,7 @@ def train():
     with g.as_default():
         # Load dataset.
         datasets = FLAGS.datasets.split(':')
-        images, gt_shapes, initial_shapes  = data_provider.super_batch_inputs(
+        images, gt_shapes, initial_shapes, names  = data_provider.super_batch_inputs(
             datasets, batch_size=FLAGS.batch_size, is_training=True)
 
         # Define model graph.

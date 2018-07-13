@@ -22,6 +22,11 @@ import losses
 #import menpo.io as mio
 import cv2
 import pickle
+_UTILS_PATH_ = '/home/dhruv/Projects/PersonalGit/Mypyscripts/Mypyscripts/utils'
+
+import sys
+sys.path.append(_UTILS_PATH_)
+from pointIO import *
 
 # Do not use a gui toolkit for matlotlib.
 matplotlib.use('Agg')
@@ -74,7 +79,7 @@ _TEST_ = True
 _BATCH_SIZE = 1
 _PAD_WIDTH_ = 512
 
-def _eval_once(saver, tfimage, gt, preds):
+def _eval_once(saver, tfimage, gt, preds, names):
   """Runs Eval once.
   Args:
     saver: Saver.
@@ -113,7 +118,9 @@ def _eval_once(saver, tfimage, gt, preds):
       step = 0
       index=0
       while(1):
-          im, gtlms, pred_lms = sess.run([tfimage, gt, preds])
+          im, gtlms, pred_lms, data_names = sess.run([tfimage, gt, preds, names])
+          print(data_names[0].decode())
+          input('hold')
           im = im[0] * 255
           pts = pred_lms[0]
           GT = gtlms[0]
@@ -194,13 +201,13 @@ def flip_predictions(predictions, shapes):
 def evaluate(dataset_path):
     """Evaluate model on Dataset for a number of steps."""
     train_dir = Path(FLAGS.checkpoint_dir)
-    images, gt_shapes, initial_shapes = data_provider.super_batch_inputs(
+    images, gt_shapes, initial_shapes, names = data_provider.super_batch_inputs(
         None, batch_size=_BATCH_SIZE, is_training=False)
     patch_shape = (FLAGS.patch_size, FLAGS.patch_size)
     preds = mdm_model.model(images, initial_shapes, patch_shape=patch_shape, bs=_BATCH_SIZE)
     saver = tf.train.Saver()
     preds = preds[-1]
-    _eval_once(saver, images, gt_shapes, preds)
+    _eval_once(saver, images, gt_shapes, preds, names)
 
     '''
     images, gt_truth, inits, _ = data_provider.read_images(
