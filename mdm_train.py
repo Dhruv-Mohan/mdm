@@ -19,9 +19,9 @@ __training_paths = [str(__datasets_dir / (('pertubed_' if use_pertubed else '') 
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_float('initial_learning_rate', 1e-3, 'Initial learning rate.')
-tf.app.flags.DEFINE_float('decay_steps', 15000, 'Number of steps to decay learning rate.')
+tf.app.flags.DEFINE_float('decay_steps', 50000, 'Number of steps to decay learning rate.')
 tf.app.flags.DEFINE_float('learning_rate_decay_factor', 0.1, 'Learning rate decay factor.')
-tf.app.flags.DEFINE_integer('batch_size', 40, '''The batch size to use.''')
+tf.app.flags.DEFINE_integer('batch_size', 4, '''The batch size to use.''')
 tf.app.flags.DEFINE_integer('num_preprocess_threads', 32, 'How many preprocess threads to use.')
 tf.app.flags.DEFINE_string('train_dir', 'ckpt/train',
                            '''Directory where to write event logs '''
@@ -33,7 +33,7 @@ tf.app.flags.DEFINE_integer('max_steps', 100000, 'Number of batches to run.')
 tf.app.flags.DEFINE_string('train_device', '/gpu:0', 'Device to train with.')
 tf.app.flags.DEFINE_string('datasets', ':'.join(__training_paths), 
                            '''The datasets to use (tfrecords).''')
-tf.app.flags.DEFINE_integer('patch_size', 30, 'The extracted patch size')
+tf.app.flags.DEFINE_integer('patch_size', 72, 'The extracted patch size')
 
 # The decay to use for the moving average.
 MOVING_AVERAGE_DECAY = 0.9999
@@ -76,7 +76,7 @@ def train():
         tf.summary.image('predictions', tf.concat(axis=2, values=pred_images))
        
         # Calculate the learning rate schedule.
-        decay_steps = 15000
+        decay_steps = 50000
 
         global_step = slim.get_global_step() or slim.create_global_step()
 
@@ -107,9 +107,9 @@ def train():
         slim.learning.train(
             train_op,
             FLAGS.train_dir,
-            save_summaries_secs=30,
+            save_summaries_secs=300,
             init_fn=init_fn,
-            save_interval_secs=600)
+            save_interval_secs=3600)
 
 
 if __name__ == '__main__':

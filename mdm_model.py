@@ -5,6 +5,7 @@ import numpy as np
 from functools import partial
 slim = tf.contrib.slim
 _PATCHES_ = 90
+_TRAINING_ = False
 #_extract_patches_module = tf.load_op_library('/homes/gt108/Projects/tf_extract_patches/extract_patches.so')
 
 def convolutional_model_mini(inputs):   
@@ -74,18 +75,22 @@ def convolutional_model_mini_3(inputs):
 
 def convolutional_model(inputs):
   with tf.variable_scope('convnet'):
-    with slim.arg_scope([slim.conv2d], padding='SAME', num_outputs=48, kernel_size=3, normalizer_fn=slim.batch_norm):
-      with slim.arg_scope([slim.max_pool2d], kernel_size=2):
-        net = slim.conv2d(inputs, scope='conv_1')
-        net = slim.max_pool2d(net)
-        net = slim.conv2d(net, scope='conv_2')
-        net = slim.max_pool2d(net)
-        net = slim.conv2d(net, scope='conv_3')
-        net = slim.conv2d(net, scope='conv_3_2')
-        net = slim.max_pool2d(net)
-        net = slim.conv2d(net, scope='conv_4')
-        net = slim.conv2d(net, scope='conv_4_2')
-        net = slim.max_pool2d(net)
+    with slim.arg_scope([slim.conv2d], padding='SAME', num_outputs=64, kernel_size=3, normalizer_fn=slim.batch_norm):
+        with slim.arg_scope([slim.batch_norm], is_training=_TRAINING_):
+
+          with slim.arg_scope([slim.max_pool2d], kernel_size=2):
+            net = slim.conv2d(inputs, scope='conv_1')
+            net = slim.max_pool2d(net)
+            net = slim.conv2d(net, scope='conv_2')
+            net = slim.max_pool2d(net)
+            net = slim.conv2d(net, scope='conv_3')
+            net = slim.conv2d(net, scope='conv_3_2')
+            net = slim.max_pool2d(net)
+            net = slim.conv2d(net, scope='conv_4')
+            net = slim.conv2d(net, scope='conv_4_2')
+            net = slim.max_pool2d(net)
+            net = slim.conv2d(net, scope='conv_5')
+            net = slim.conv2d(net, scope='conv_5_2')
 
   return net
 
@@ -145,7 +150,9 @@ def model(images, initial_shapes, num_iterations=3, num_patches=_PATCHES_, patch
 
       
       with tf.variable_scope('convnet', reuse=step > 0):
-          features = convolutional_model_mini_3(patches)
+          features = convolutional_model(patches)
+          #features = convolutional_model_mini_3(patches)
+
 
       features = tf.reshape(features, (batch_size, -1))
 

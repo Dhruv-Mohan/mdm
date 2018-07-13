@@ -69,10 +69,10 @@ def plot_ced(errors, method_names=['MDM']):
     return data
 '''
 
-_OUTPUT_PATH_ = '/home/dhruv/Projects/PersonalGit/mdm/output/'
+_OUTPUT_PATH_ = '/home/dhruv/PycharmProjects/Output/'
 _TEST_ = True
 _BATCH_SIZE = 1
-_PAD_WIDTH_ = 199
+_PAD_WIDTH_ = 512
 
 def _eval_once(saver, tfimage, gt, preds):
   """Runs Eval once.
@@ -131,13 +131,16 @@ def _eval_once(saver, tfimage, gt, preds):
               cv2.circle(image, pred_pt, 2, (255, 0, 0))
               cv2.line(image, pred_pt, grnd_pt, (0, 0, 255))
           cv2.imwrite(_OUTPUT_PATH_ + 'images/' + str(index) + '.jpg', image)
+          input('j')
           results_dict={'L1_error': np.asarray(l1_distances), 'PREDS': 0, 'GT_tags':0}
           with open(_OUTPUT_PATH_ + 'pickles/' + str(index) + '.pickle', 'wb') as pick_out:
               pickle.dump(results_dict, pick_out)
 
+          '''
           index += 1
-          #cv2.imshow('image', image)
-          #cv2.waitKey(0)
+          cv2.imshow('image', image)
+          cv2.waitKey(0)
+          '''
 
       print('%s: starting evaluation on (%s).' % (datetime.now(), FLAGS.dataset_path))
       start_time = time.time()

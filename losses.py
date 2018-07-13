@@ -29,6 +29,6 @@ def normalized_rmse_2(pred, gt_truth):
     return tf.reduce_sum(rmse, 1) / (norm * n_landmarks)
 
 def normalized_rmse(pred, gt_truth):
-    norm = tf.sqrt(1e-12 + tf.reduce_sum(((gt_truth[:, 59, :] - gt_truth[:, 69, :])**2), 1))
+    norm = tf.sqrt(1e-12 + tf.reduce_sum(((gt_truth[:, 20, :] - gt_truth[:, 29, :])**2), 1))
 
     return tf.reduce_sum(tf.sqrt(1e-12 + tf.reduce_sum(tf.square(pred - gt_truth), 2)), 1) / (norm * 90)
