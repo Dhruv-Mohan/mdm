@@ -122,6 +122,7 @@ def _eval_once(saver, tfimage, gt, preds, names):
           print(data_names[0].decode())
           data_names = data_names[0].decode()
           im = im[0] * 255
+          im = im.astype(np.uint8)
           pts = pred_lms[0]
           GT = gtlms[0]
           image = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
@@ -141,12 +142,12 @@ def _eval_once(saver, tfimage, gt, preds, names):
           results_dict={'L1_error': np.asarray(l1_distances), 'PREDS': 0, 'GT_tags':0}
           with open(_OUTPUT_PATH_ + 'pickles/' + data_names + '.pickle', 'wb') as pick_out:
               pickle.dump(results_dict, pick_out)
-          with open(_OUTPUT_PATH_ +'inits/' +data_names + '.pts', 'w') as inits:
+          with open(_OUTPUT_PATH_ +'mdminits/' +data_names + '.pts', 'w') as inits:
               write_pts(inits, pts, menpo=False)
 
 
-          #cv2.imshow('image', image)
-          #cv2.waitKey(0)
+          cv2.imshow('image', image)
+          cv2.waitKey(0)
 
       print('%s: starting evaluation on (%s).' % (datetime.now(), FLAGS.dataset_path))
       start_time = time.time()
