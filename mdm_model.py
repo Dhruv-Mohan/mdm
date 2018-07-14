@@ -152,6 +152,7 @@ def build_sampling_grid(patch_shape):
 
 default_sampling_grid = build_sampling_grid((30, 30))
 
+
 def extract_patches_image(image, centres, sampling_grid=default_sampling_grid):
     """ Extracts patches from an image.
     Args:
@@ -213,3 +214,37 @@ def model(images, initial_shapes, num_iterations=5, num_patches=_PATCHES_, patch
       predictions.append(initial_shapes + deltas)
 
   return predictions
+
+def lstm_model(images, initial_shapes, num_iterations=5, num_patches=_PATCHES_, patch_shape=(72, 72), hidden_size=512, num_channels=3, bs = 30):
+    sampling_grid = build_sampling_grid(patch_shape)
+    batch_size = images.get_shape().as_list()[0]
+    batch_size = bs
+    lstm_size = 256
+    dropout = 1.0
+    if _TRAINING_:
+        dropout = 0.8
+    lstm1 = tf.contrib.rnn.LayerNormBasicLSTMCell(lstm_size, dropout_keep_prob=dropout)
+    lstm2 = tf.contrib.rnn.LayerNormBasicLSTMCell(lstm_size, dropout_keep_prob=dropout)
+    lstm = tf.contrib.rnn.MultiRNNCell([lstm1, lstm2])
+    state = tf.zeros((batch_size, lstm.state_size))
+    deltas = tf.zeros((batch_size, num_patches, 2))
+    predictions = []
+    for step in range(num_iterations):
+        with tf.device('/cpu:0'):
+              # patches = _extract_patches_module.extract_patches(images, tf.constant(patch_shape), initial_shapes + deltas)
+              patches = extract_patches(images, initial_shapes + deltas, sampling_grid=sampling_grid, bs=batch_size)
+              # TODO: Implement the gradient.
+              patches = tf.stop_gradient(patches)
+
+        with tf.variable_scope('convnet', reuse=step > 0):
+            features = convolutional_model3(patches)
+
+        features = tf.reshape(features, (batch_size, -1))
+        with tf.variable_scope('lstm', reuse=step > 0) as scope:
+            output, state = lstm(features, state)
+            prediction = slim.linear(output, num_patches * 2, scope='pred')
+        prediction = tf.reshape(prediction, (batch_size, num_patches, 2))
+        deltas += prediction
+        predictions.append(initial_shapes + deltas)
+
+    return predictions
